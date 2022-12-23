@@ -462,7 +462,6 @@ public fun post_result(finalBitmap : Bitmap, context: Context) {
             jsonObject.put("matricule", "${registrationNumber.replace(" ✔", "")}")
             jsonObject.put("coords", "{left: ${coordsResult?.boundingBox?.left}, right: ${coordsResult?.boundingBox?.right}, top: ${coordsResult?.boundingBox?.top}, bottom: ${coordsResult?.boundingBox?.bottom}}")
             jsonObject.put("photo", imageToPost)
-            // coords: {xmin: 15,253, xmax: 58,568, ymin: 14,256, ymax: 85,547}
 
 
             // Convert JSONObject to String
