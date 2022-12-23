@@ -376,8 +376,8 @@ class CameraFragment : Fragment() , ObjectDetectorHelper.DetectorListener {
     private fun detectObjects(image: ImageProxy) {
         // Copy out RGB bits to the shared bitmap buffer
         image.use { bitmapBuffer.copyPixelsFromBuffer(image.planes[0].buffer) }
-
         val imageRotation = image.imageInfo.rotationDegrees
+
         // Pass Bitmap and rotation to the object detector helper for processing and detection
         objectDetectorHelper.detect(bitmapBuffer, imageRotation)
     }
@@ -401,10 +401,7 @@ class CameraFragment : Fragment() , ObjectDetectorHelper.DetectorListener {
             fragmentCameraBinding.bottomSheetLayout.inferenceTimeVal.text =
                             String.format("%d ms", inferenceTime)
 
-
             fragmentCameraBinding.bottomSheetLayout.registrationNumberVal.text = String.format(registrationNumber)
-
-            
 
             // Pass necessary information to OverlayView for drawing on the canvas
             fragmentCameraBinding.overlay.setResults(

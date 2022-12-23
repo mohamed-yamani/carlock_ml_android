@@ -15,14 +15,23 @@
  */
 package org.tensorflow.lite.examples.objectdetection
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.graphics.RectF
+import android.location.Location
 import android.os.Environment
 import android.os.SystemClock
+import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.google.firebase.crashlytics.buildtools.reloc.org.apache.http.HttpRequest
 import com.google.firebase.crashlytics.buildtools.reloc.org.apache.http.client.HttpClient
 import kotlinx.coroutines.*
@@ -53,7 +62,7 @@ var index = 0;
 //val listOfMatricules: List<String> = listOf("")
 //val listOfMatricules = listOf("65528SAS8", "83092SAS72", "20181SHS1")
 var imageToPost:String? = null;
-
+var locationR: Location? = null;
 
 class ObjectDetectorHelper (
   var threshold: Float = 0.5f,
@@ -271,8 +280,8 @@ private fun saveImg(imgBitmap: Bitmap): String? {
     try {
 
         try {
-            val out = FileOutputStream(file)
-            imgBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+//            val out = FileOutputStream(file)
+//            imgBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
             // out to base64
             val baos = ByteArrayOutputStream()
 
@@ -284,8 +293,8 @@ private fun saveImg(imgBitmap: Bitmap): String? {
             rotatedBitmap.compress(Bitmap.CompressFormat.PNG, 100, baos) // It can be also saved it as JPEG
             val b = baos.toByteArray()
             val b64 = b.toBase64()
-            out.flush()
-            out.close()
+//            out.flush()
+//            out.close()
             return b64;
         } catch (e: Exception) {
             e.printStackTrace()
@@ -449,17 +458,30 @@ fun longLog(str: String?) {
     println(" ------------------------------------------------------------------------------------- ")
 }
 
+
+
 var ourToken:String? = "";
+
+
+
 public fun post_result(finalBitmap : Bitmap, context: Context) {
     println("Coroutine_Scope start here ${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss:SSS"))}")
     // async
     CoroutineScope(IO).launch {
         async {
 //            longLog(imageToPost);
+            get_location(context)
             // Create JSON using JSONObject
+                        try {
+                // sleep for one second
+                Thread.sleep(150)
+            } catch (e: InterruptedException) {
+                e.printStackTrace()
+            }
             
             val jsonObject = JSONObject()
             jsonObject.put("matricule", "${registrationNumber.replace(" ✔", "")}")
+            jsonObject.put("location", "{lat: ${locationR?.latitude ?: 0.0}, long: ${locationR  ?.longitude ?: 0.0}}")
             jsonObject.put("coords", "{left: ${coordsResult?.boundingBox?.left}, right: ${coordsResult?.boundingBox?.right}, top: ${coordsResult?.boundingBox?.top}, bottom: ${coordsResult?.boundingBox?.bottom}}")
             jsonObject.put("photo", imageToPost)
 
@@ -468,6 +490,7 @@ public fun post_result(finalBitmap : Bitmap, context: Context) {
             val jsonObjectString = jsonObject.toString()
 
             GlobalScope.launch(Dispatchers.IO) {
+
                 val url = URL("https://eoy9xavp8k1exi6.m.pipedream.net")
                 val httpURLConnection = url.openConnection() as HttpURLConnection
                 httpURLConnection.doOutput = true
@@ -494,10 +517,28 @@ public fun post_result(finalBitmap : Bitmap, context: Context) {
                         Log.d("Pretty Printed JSON :", response)
                     }
                 } else {
-                    Log.e("HTTPURLCONNECTION_ERROR", responseCode.toString())
+                    Log.e("INTERCONNECTION_ERROR", responseCode.toString())
                 }
+
             }
         }
     }
     println("Coroutine_Scope end here ${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss:SSS"))}")
+}
+
+
+public fun get_location(context: Context) {
+    var fusedLocationProviderClient: FusedLocationProviderClient? = null;
+
+    fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context);
+    if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        return;
+    } else {
+        fusedLocationProviderClient.lastLocation.addOnSuccessListener { location: Location? ->
+            if (location != null) {
+                println("location is ------------------------------- : $location")
+                locationR = location!!
+            }
+        }
+    }
 }
