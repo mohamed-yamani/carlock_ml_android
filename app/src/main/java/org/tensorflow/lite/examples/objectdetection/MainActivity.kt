@@ -60,14 +60,25 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 //        binding = ActivityMainBinding.inflate(layoutInflater)
 //        get_matricules()
+
+
+
         activityMainBinding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(activityMainBinding.root)
+
 //        get_matricules()
 //        startService(Intent(this@MainActivity, MyService::class.java))
         // location
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
         getCurrentLocation();
+
+        // Create an intent to start the MyForegroundService class
+        val intent = Intent(this, MyForegroundService::class.java)
+
+        // Start the service
+        startService(intent)
+
     }
 
     fun getCurrentLocation() {

@@ -53,6 +53,7 @@ var registrationNumber:String = "value";
 
 class CameraFragment : Fragment() , ObjectDetectorHelper.DetectorListener {
 
+
     private val TAG = "ObjectDetection"
 
     private var _fragmentCameraBinding: FragmentCameraBinding? = null
