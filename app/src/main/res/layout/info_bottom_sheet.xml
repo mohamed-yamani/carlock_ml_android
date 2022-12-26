@@ -411,22 +411,28 @@
             <EditText
                 android:id="@+id/editTextToken"
                 android:layout_width="230dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_alignParentRight="true"
-                android:gravity="left|end"
-                android:hint="enter your token here"
+                android:paddingHorizontal="10dp"
+                android:hint="enter your token"
                 android:inputType="text"
                 android:minEms="@integer/bottom_sheet_control_text_min_ems"
                 android:textColor="@color/bottom_sheet_text_color"
-                android:textSize="@dimen/bottom_sheet_text_size" />
+                android:textAlignment="center"
+                android:textSize="@dimen/bottom_sheet_text_size"
+                android:background="@drawable/input_border"/>
 
             <Button
                 android:id="@+id/buttonToken"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="save token"
+                android:layout_height="match_parent"
+                android:text="Login"
                 android:textColor="@color/bottom_sheet_text_color"
-                android:textSize="@dimen/bottom_sheet_control_text_side_margin" />
+                android:textSize="14sp"
+                android:padding="16dp"
+                android:background="@drawable/login_button_shape"
+                android:onClick="performLogin"
+                android:layout_marginLeft="10dp"/>
 
         </LinearLayout>
 
