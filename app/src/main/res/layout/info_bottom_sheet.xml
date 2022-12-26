@@ -434,8 +434,10 @@
             android:id="@+id/button2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@android:color/holo_red_dark"
-            android:text="Delete Token" />
+            android:text="Logout"
+            android:layout_marginTop="16dp"
+            android:textColor="@color/bottom_sheet_background"
+            android:background="@drawable/logout_button_shape"/>
 
     </androidx.appcompat.widget.LinearLayoutCompat>
 </androidx.core.widget.NestedScrollView>
