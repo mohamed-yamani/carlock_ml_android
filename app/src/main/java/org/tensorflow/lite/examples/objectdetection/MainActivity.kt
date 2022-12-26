@@ -52,6 +52,14 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 
+
+import java.net.HttpURLConnection
+
+import android.graphics.BitmapFactory
+import android.provider.MediaStore
+import androidx.core.content.ContextCompat
+
+
 /**
  * Main entry point into our app. This app follows the single-activity pattern, and all
  * functionality is implemented in the form of fragments.
@@ -84,14 +92,19 @@ class MainActivity : AppCompatActivity() {
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
         getCurrentLocation();
 
-//        // Create an intent to start the MyForegroundService class
-//        val intent = Intent(this, MyForegroundService::class.java)
-//
-//        // Start the service
-//        startService(intent)
+        // Create an intent to start the MyForegroundService class
+        val intent = Intent(this, MyForegroundService::class.java)
 
-        downloadTFLiteModel(this, "https://cdn.pixabay.com/photo/2015/04/23/22/00/tree-736885__480.jpg", "mmmmmodel.tflite")
+        // Start the service
+        startService(intent)
 
+//        val permission = Manifest.permission.WRITE_EXTERNAL_STORAGE
+//        if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+//            ActivityCompat.requestPermissions(this, arrayOf(permission), 1)
+//        }
+
+//        downloadTFLiteModel(this, "https://cdn.pixabay.com/photo/2015/04/23/22/00/tree-736885__480.jpg", "mmmmmodel.tflite")
+//        saveImageToGallery(this)
     }
 
     fun getCurrentLocation() {
@@ -238,4 +251,21 @@ fun downloadTFLiteModel(context: Context, url: String, fileName: String) {
             }
         }
     })
+}
+
+fun saveImageToGallery(context: Context) {
+
+    val url = URL("https://cdn.pixabay.com/photo/2015/04/23/22/00/tree-736885__480.jpg")
+    val connection = url.openConnection() as HttpURLConnection
+    connection.doInput = true
+    connection.connect()
+    val inputStream = connection.inputStream
+    val data = inputStream.readBytes()
+    val bitmap = BitmapFactory.decodeByteArray(data, 0, data.size)
+    val imageUrl = MediaStore.Images.Media.insertImage(
+        context.contentResolver,
+        bitmap,
+        "tree.jpg",
+        "Tree image downloaded from pixabay.com"
+    )
 }
