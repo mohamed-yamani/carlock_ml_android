@@ -123,4 +123,8 @@ dependencies {
     implementation 'org.tensorflow:tensorflow-lite-gpu:2.9.0'
     // services location
     implementation 'com.google.android.gms:play-services-location:21.0.1'
+
+//    to download and save a TFLite model
+    implementation 'com.squareup.okhttp3:okhttp:4.9.0'
+
 }

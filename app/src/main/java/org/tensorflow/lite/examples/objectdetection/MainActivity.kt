@@ -41,6 +41,17 @@ import java.io.DataOutputStream
 import java.io.InputStreamReader
 import java.net.URL
 
+//  to download and save a TFLite model
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import java.io.ByteArrayOutputStream
+import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
+
 /**
  * Main entry point into our app. This app follows the single-activity pattern, and all
  * functionality is implemented in the form of fragments.
@@ -73,11 +84,13 @@ class MainActivity : AppCompatActivity() {
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
         getCurrentLocation();
 
-        // Create an intent to start the MyForegroundService class
-        val intent = Intent(this, MyForegroundService::class.java)
+//        // Create an intent to start the MyForegroundService class
+//        val intent = Intent(this, MyForegroundService::class.java)
+//
+//        // Start the service
+//        startService(intent)
 
-        // Start the service
-        startService(intent)
+        downloadTFLiteModel(this, "https://cdn.pixabay.com/photo/2015/04/23/22/00/tree-736885__480.jpg", "mmmmmodel.tflite")
 
     }
 
@@ -193,4 +206,36 @@ public fun get_matricules() {
             return;
         }
     }
+}
+
+fun downloadTFLiteModel(context: Context, url: String, fileName: String) {
+    val request = Request.Builder()
+        .url(url)
+        .build()
+
+    val client = OkHttpClient()
+    client.newCall(request).enqueue(object : Callback {
+        override fun onFailure(call: Call, e: IOException) {
+            // Handle failure
+        }
+
+        override fun onResponse(call: Call, response: Response) {
+            if (response.isSuccessful) {
+                val inputStream = response.body!!.byteStream()
+                val fileOutputStream = context.assets.openFd(fileName).createOutputStream()
+                val buffer = ByteArray(1024)
+                var len = inputStream.read(buffer)
+                while (len != -1) {
+                    fileOutputStream.write(buffer, 0, len)
+                    len = inputStream.read(buffer)
+                }
+                fileOutputStream.close()
+                inputStream.close()
+                println("mmmmodel.tflite saved")
+            } else {
+                // Handle unsuccessful response
+                println("mmmmodel.tflite unsuccessful response")
+            }
+        }
+    })
 }
