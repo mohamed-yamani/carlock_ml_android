@@ -125,7 +125,7 @@ class CameraFragment : Fragment() , ObjectDetectorHelper.DetectorListener {
         try{
             val sharedPreference =  activity?.getSharedPreferences("myPref", Context.MODE_PRIVATE)
             ourToken = sharedPreference?.getString("token", null)
-            Toast.makeText(context, "Token is: $ourToken", Toast.LENGTH_SHORT).show()
+//            Toast.makeText(context, "you are logged in", Toast.LENGTH_SHORT).show()
             if (ourToken != null && ourToken!!.isNotEmpty())
             {
                 fragmentCameraBinding.bottomSheetLayout.tokenLayout.visibility = View.GONE
