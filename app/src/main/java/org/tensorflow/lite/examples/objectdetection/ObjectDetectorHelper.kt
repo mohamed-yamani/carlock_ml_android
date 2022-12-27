@@ -63,6 +63,7 @@ var index = 0;
 //val listOfMatricules = listOf("65528SAS8", "83092SAS72", "20181SHS1")
 var imageToPost:String? = null;
 var locationR: Location? = null;
+var croppedImage: String?=null;
 
 class ObjectDetectorHelper (
   var threshold: Float = 0.5f,
@@ -270,6 +271,26 @@ private fun bitmapToBase64(bitmap: Bitmap, context: Context): String? {
     // return b64;
 }
 
+private fun bitmapToBase64c(bitmap: Bitmap, context: Context): String? {
+    // convert bitmap to jpeg
+
+    return saveImg(bitmap);
+
+    // val file = File(Environment.getExternalStorageDirectory().toString() + File.separator + "image.jpg")
+    // file.createNewFile()
+    // // Convert bitmap to byte array
+    // val baos = ByteArrayOutputStream()
+    // bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos) // It can be also saved it as JPEG
+    // val b = baos.toByteArray()
+    // val b64 = b.toBase64()
+//    val byteArrayOutputStream = ByteArrayOutputStream()
+//    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
+//    val b64 = byteArrayOutputStream.toByteArray().toBase64()
+    // return b64;
+}
+
+
+
 private fun saveImg(imgBitmap: Bitmap): String? {
     val root = Environment.getExternalStorageDirectory().toString()
     val myDir = File("$root/captured_images_new")
@@ -286,11 +307,11 @@ private fun saveImg(imgBitmap: Bitmap): String? {
             val baos = ByteArrayOutputStream()
 
             // scale the finalBitmap to match with imageHeight and imageWidth
-            val scaledBitmap = Bitmap.createScaledBitmap(imgBitmap, imgBitmap.height, imgBitmap.width, true)
-            val rotatedBitmap = Bitmap.createBitmap(scaledBitmap, 0, 0, scaledBitmap.width, scaledBitmap.height, Matrix().apply { postRotate(90f) }, true)
+            val scaledBitmap = Bitmap.createScaledBitmap(imgBitmap, imgBitmap.width, imgBitmap.height, true)
+//            val rotatedBitmap = Bitmap.createBitmap(scaledBitmap, 0, 0, scaledBitmap.width, scaledBitmap.height, Matrix().apply { postRotate(90f) }, true)
 
 
-            rotatedBitmap.compress(Bitmap.CompressFormat.PNG, 100, baos) // It can be also saved it as JPEG
+            scaledBitmap.compress(Bitmap.CompressFormat.PNG, 100, baos) // It can be also saved it as JPEG
             val b = baos.toByteArray()
             val b64 = b.toBase64()
 //            out.flush()
@@ -327,7 +348,8 @@ public fun matricule_crop(finalBitmap: Bitmap, context: Context, threshold: Floa
                 for (i in 0 until results.size
                 ) {
                     val cropedBitmap = Bitmap.createBitmap(finalBitmap, results[i].boundingBox.left.toInt(), results[i].boundingBox.top.toInt(), results[i].boundingBox.width().toInt(), results[i].boundingBox.height().toInt())
-                    imageToPost = bitmapToBase64(originalImage, context)
+                    imageToPost = bitmapToBase64c(originalImage, context)
+                    croppedImage = bitmapToBase64c(cropedBitmap, context)
                     coordsResult = results[i]
                     letters_and_numbers_crop(cropedBitmap, context, thresholdPr, maxResultsPr);
                     val root = Environment.getExternalStorageDirectory().toString()
@@ -467,9 +489,12 @@ var ourToken:String? = "";
 public fun post_result(finalBitmap : Bitmap, context: Context) {
     println("Coroutine_Scope start here ${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss:SSS"))}")
     // async
+
     CoroutineScope(IO).launch {
         async {
-//            longLog(imageToPost);
+            println("cuted 1 image")
+            longLog(croppedImage);
+            println("cuted 2 image")
             get_location(context)
             // Create JSON using JSONObject
                         try {
@@ -482,8 +507,10 @@ public fun post_result(finalBitmap : Bitmap, context: Context) {
             val jsonObject = JSONObject()
             jsonObject.put("matricule", "${registrationNumber.replace(" ✔", "")}")
             jsonObject.put("location", "{lat: ${locationR?.latitude ?: 0.0}, long: ${locationR  ?.longitude ?: 0.0}}")
+//            jsonObject.put("location", "{lat: 0.0}, long: 0.0}}")
             jsonObject.put("coords", "{left: ${coordsResult?.boundingBox?.left}, right: ${coordsResult?.boundingBox?.right}, top: ${coordsResult?.boundingBox?.top}, bottom: ${coordsResult?.boundingBox?.bottom}}")
             jsonObject.put("photo", imageToPost)
+            jsonObject.put("photo2", croppedImage)
 
 
             // Convert JSONObject to String
