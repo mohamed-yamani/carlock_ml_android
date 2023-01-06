@@ -20,6 +20,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.graphics.RectF
@@ -28,6 +29,8 @@ import android.os.Environment
 import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
+import android.view.Surface
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -38,6 +41,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
 import org.json.JSONObject
 import org.tensorflow.lite.examples.objectdetection.fragments.registrationNumber
+import org.tensorflow.lite.examples.objectdetection.other.Constants.MATCH_CREATE_URL
 import org.tensorflow.lite.gpu.CompatibilityList
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
@@ -67,7 +71,7 @@ var croppedImage: String?=null;
 
 class ObjectDetectorHelper (
   var threshold: Float = 0.5f,
-  var thresholdPr: Float = 0.5f,
+  var thresholdPr: Float = 0.15f,
   var numThreads: Int = 2,
   var maxResults: Int = 10,
   var maxResultsPr: Int = 10,
@@ -172,7 +176,8 @@ class ObjectDetectorHelper (
             // Get the inference time
 //            inferenceTime = SystemClock.uptimeMillis() - inferenceTime
 
-            println("image and results are image height ${image.height} image with ${image.width} and $results")
+//            println("image and results are image height ${image.height} image with ${image.width} and $results")
+//            Toast.makeText(context, "image and results are image height ${image.height} image with ${image.width} and $results", Toast.LENGTH_SHORT).show()
 
             // convert and save the image to the gallery
             if(isExternalStorageWritable())
@@ -328,17 +333,59 @@ private fun saveImg(imgBitmap: Bitmap): String? {
 var coordsResult: Detection? = null;
 
 public fun matricule_crop(finalBitmap: Bitmap, context: Context, threshold: Float,thresholdPr: Float, maxResults: Int, maxResultsPr: Int, originalImage: Bitmap) {
+    
+    var image = finalBitmap
     val optionsBuilder =
             ObjectDetector.ObjectDetectorOptions.builder()
                 .setScoreThreshold(threshold)
                 .setMaxResults(maxResults)
-    val modelName =
-         "pf-ef0-cpu.tflite"
+    val modelName = "pf-ef0-cpu.tflite"
             println("Time kotlin Native tflite is start ${System.currentTimeMillis()}");
-      
+
              val objectDetectorCroped =
                 ObjectDetector.createFromFileAndOptions(context, modelName, optionsBuilder.build())
-            val tensorImage = TensorImage.fromBitmap(finalBitmap)
+//    Log.d("start here", "___filePath___ start here")
+//    val file = File(context.getExternalFilesDir(null), "model22.tflite")
+//    val filePath = file.absolutePath
+//    val objectDetectorCroped = ObjectDetector.createFromFileAndOptions(context, filePath, optionsBuilder.build())
+//
+//    println("___filePath___\n $filePath \nfile ${file}\nobjectDetectorCroped $objectDetectorCroped \n___filePath___")
+
+            // check if the mobile is pivot or not to rotate the image
+//            if (Configuration.ORIENTATION_PORTRAIT != context.resources.configuration.orientation){
+//                val rotatedBitmap = Bitmap.createBitmap(image, 0, 0, image.width, image.height, Matrix().apply { postRotate(90f) }, true)
+//                image = rotatedBitmap
+//            }
+
+    if (context.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+
+        val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val rotation = windowManager.defaultDisplay.rotation
+        if (rotation == Surface.ROTATION_90) {
+            val rotatedBitmap = Bitmap.createBitmap(image, 0, 0, image.width, image.height, Matrix().apply { postRotate(270f) }, true)
+            image = rotatedBitmap
+        } else if (rotation == Surface.ROTATION_270) {
+            val rotatedBitmap = Bitmap.createBitmap(image, 0, 0, image.width, image.height, Matrix().apply { postRotate(90f) }, true)
+            image = rotatedBitmap
+        }
+        // val screenLayout = context.resources.configuration.screenLayout and Configuration.SCREENLAYOUT_LAYOUTDIR_MASK
+        // if (screenLayout == Configuration.SCREENLAYOUT_LAYOUTDIR_RTL) {
+        //     val rotatedBitmap = Bitmap.createBitmap(image, 0, 0, image.width, image.height, Matrix().apply { postRotate(90f) }, true)
+        //     image = rotatedBitmap
+        // } else {
+        //     val rotatedBitmap = Bitmap.createBitmap(image, 0, 0, image.width, image.height, Matrix().apply { postRotate(270f) }, true)
+        //     image = rotatedBitmap
+        // }
+    } else  {
+        val screenLayout = context.resources.configuration.screenLayout and Configuration.SCREENLAYOUT_LAYOUTDIR_MASK
+        if (screenLayout == Configuration.SCREENLAYOUT_LAYOUTDIR_RTL) {
+            val rotatedBitmap = Bitmap.createBitmap(image, 0, 0, image.width, image.height, Matrix().apply { postRotate(180f) }, true)
+            image = rotatedBitmap
+        }
+    }
+
+
+    val tensorImage = TensorImage.fromBitmap(image)
             val results = objectDetectorCroped?.detect(tensorImage)
             if (results != null && results.isNotEmpty()) {
                 println("RESULTS SIZE IS ${results.size}")
@@ -347,7 +394,7 @@ public fun matricule_crop(finalBitmap: Bitmap, context: Context, threshold: Floa
 
                 for (i in 0 until results.size
                 ) {
-                    val cropedBitmap = Bitmap.createBitmap(finalBitmap, results[i].boundingBox.left.toInt(), results[i].boundingBox.top.toInt(), results[i].boundingBox.width().toInt(), results[i].boundingBox.height().toInt())
+                    val cropedBitmap = Bitmap.createBitmap(image, results[i].boundingBox.left.toInt(), results[i].boundingBox.top.toInt(), results[i].boundingBox.width().toInt(), results[i].boundingBox.height().toInt())
                     imageToPost = bitmapToBase64c(originalImage, context)
                     croppedImage = bitmapToBase64c(cropedBitmap, context)
                     coordsResult = results[i]
@@ -375,6 +422,7 @@ var first_get_calling = 0;
 public fun letters_and_numbers_crop(finalBitmap: Bitmap, context: Context, thresholdPr: Float, maxResultsPr: Int) {
 
     if (first_get_calling++ == 0) {
+        println("get_matricules called")
         get_matricules()
     }
 
@@ -461,6 +509,10 @@ public fun filter_results(results: List<Detection>): List<Detection> {
     return filtred_result;
 }
 
+fun getLetters(str: String): String {
+    return str.filter { it.isLetter() }
+}
+
 
 public fun result_to_string(results: List<Detection>): String {
     var result_string = ""
@@ -468,16 +520,31 @@ public fun result_to_string(results: List<Detection>): String {
     ) {
         result_string += results[i].categories[0].label
     }
-    return result_string
+    var result_string_1 = result_string.replace("SS", "S")
+        .replace("AA", "A")
+        .replace("BB", "B")
+        .replace("HH", "H")
+        .replace("S1S", "SAS")
+        .replace("S9S", "SWS")
+
+        result_string_1.replace("S", "")
+        var charachter = getLetters(result_string_1)
+        result_string_1.replace(charachter, "S${charachter}S")
+        var list_result_string = result_string_1.split("S").toMutableList()
+        list_result_string[0] = list_result_string[0].replace("A", "1").replace("W", "9")
+        list_result_string[2] = list_result_string[2].replace("A", "1").replace("W", "9")
+        println("our list_result_string : $list_result_string")
+        val separator = "S"
+        val result = list_result_string.joinToString(separator)
+        println("our string_joined : $result")
+        return result
 }
 
 fun longLog(str: String?) {
-    println(" ------------------------------------------------------------------------------------- ")
     if (str!!.length > 4000) {
         Log.d("", str!!.substring(0, 4000))
         longLog(str.substring(4000))
     } else Log.d("", str!!)
-    println(" ------------------------------------------------------------------------------------- ")
 }
 
 
@@ -505,27 +572,27 @@ public fun post_result(finalBitmap : Bitmap, context: Context) {
             }
             
             val jsonObject = JSONObject()
-            jsonObject.put("matricule", "${registrationNumber.replace(" ✔", "")}")
-            jsonObject.put("location", "{lat: ${locationR?.latitude ?: 0.0}, long: ${locationR  ?.longitude ?: 0.0}}")
-//            jsonObject.put("location", "{lat: 0.0}, long: 0.0}}")
-            jsonObject.put("coords", "{left: ${coordsResult?.boundingBox?.left}, right: ${coordsResult?.boundingBox?.right}, top: ${coordsResult?.boundingBox?.top}, bottom: ${coordsResult?.boundingBox?.bottom}}")
-            jsonObject.put("photo", imageToPost)
-            jsonObject.put("photo2", croppedImage)
+            jsonObject.put("matricule_str", "${registrationNumber.replace(" ✔", "")}")
+            jsonObject.put("location", "{\"lat\": ${locationR?.latitude ?: 0.0}, \"long\": ${locationR  ?.longitude ?: 0.0}}")
+            jsonObject.put("coords", "{\"left\": ${coordsResult?.boundingBox?.left}, \"right\": ${coordsResult?.boundingBox?.right}, \"top\": ${coordsResult?.boundingBox?.top}, \"bottom\": ${coordsResult?.boundingBox?.bottom}}")
+            jsonObject.put("picture", imageToPost)
+//            jsonObject.put("photo2", croppedImage)
 
 
             // Convert JSONObject to String
             val jsonObjectString = jsonObject.toString()
 
             GlobalScope.launch(Dispatchers.IO) {
-
-                val url = URL("https://eoy9xavp8k1exi6.m.pipedream.net")
+//                var token = "bb9c96f6634c4c82e9f551611b074994e1e8528466fdc3c735774580eb1871a7"
+//                val url = URL("https://eoy9xavp8k1exi6.m.pipedream.net")
+                val url = URL(MATCH_CREATE_URL)
                 val httpURLConnection = url.openConnection() as HttpURLConnection
                 httpURLConnection.doOutput = true
                 httpURLConnection.requestMethod = "POST"
                 httpURLConnection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
                 httpURLConnection.setRequestProperty("Accept", "application/json")
                 // token is the token of the user
-                httpURLConnection.setRequestProperty("Authorization", "testtoken $ourToken")
+                httpURLConnection.setRequestProperty("Authorization", "Bearer $ourToken")
                 httpURLConnection.doInput = true
                 httpURLConnection.doOutput = true
 
@@ -546,7 +613,6 @@ public fun post_result(finalBitmap : Bitmap, context: Context) {
                 } else {
                     Log.e("INTERCONNECTION_ERROR", responseCode.toString())
                 }
-
             }
         }
     }
@@ -563,7 +629,6 @@ public fun get_location(context: Context) {
     } else {
         fusedLocationProviderClient.lastLocation.addOnSuccessListener { location: Location? ->
             if (location != null) {
-                println("location is ------------------------------- : $location")
                 locationR = location!!
             }
         }

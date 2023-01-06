@@ -16,30 +16,22 @@
 
 package org.tensorflow.lite.examples.objectdetection
 
+import DownloadTask
 import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.location.Location
 import android.location.LocationManager
-import android.location.SettingInjectorService
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.fragment.app.Fragment
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import org.tensorflow.lite.examples.objectdetection.databinding.ActivityMainBinding
-import org.tensorflow.lite.examples.objectdetection.fragments.CameraFragment
-import org.tensorflow.lite.examples.objectdetection.fragments.registrationNumber
-import java.io.BufferedReader
-import java.io.DataOutputStream
-import java.io.InputStreamReader
-import java.net.URL
 
 //  to download and save a TFLite model
 import okhttp3.Call
@@ -47,17 +39,16 @@ import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
-import java.io.ByteArrayOutputStream
 import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
+import java.io.FileInputStream
 
 
-import java.net.HttpURLConnection
-
-import android.graphics.BitmapFactory
-import android.provider.MediaStore
 import androidx.core.content.ContextCompat
+import org.tensorflow.lite.examples.objectdetection.other.Constants.ACTION_SHOW_C_FRAGMENT
+import org.tensorflow.lite.examples.objectdetection.other.Constants.MATRICULES_LIST_URL
+import org.tensorflow.lite.examples.objectdetection.other.Constants.REQUEST_CODE_PERMISSIONS
+import org.tensorflow.lite.examples.objectdetection.services.MyService
+import timber.log.Timber
 
 
 /**
@@ -77,8 +68,22 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        Timber.plant(Timber.DebugTree())
 //        binding = ActivityMainBinding.inflate(layoutInflater)
 //        get_matricules()
+//        if (IS_FIRST_TIME) {
+//            val intent = Intent(this, ToastService::class.java)
+//            startService(intent)
+//            IS_FIRST_TIME = false
+//        }
+
+        requestPermissions()
+
+//        val intent = Intent(this, MyService::class.java)
+//        startService(intent)
+
+
 
 
 
@@ -92,11 +97,12 @@ class MainActivity : AppCompatActivity() {
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
         getCurrentLocation();
 
-        // Create an intent to start the MyForegroundService class
-        val intent = Intent(this, MyForegroundService::class.java)
-
-        // Start the service
-        startService(intent)
+//        // Create an intent to start the MyForegroundService class
+//        val intent = Intent(this, MyForegroundService::class.java)
+//
+//        // Start the service
+//        startForegroundService(intent);
+//        ContextCompat.startForegroundService(this, intent)
 
 //        val permission = Manifest.permission.WRITE_EXTERNAL_STORAGE
 //        if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
@@ -105,6 +111,70 @@ class MainActivity : AppCompatActivity() {
 
 //        downloadTFLiteModel(this, "https://cdn.pixabay.com/photo/2015/04/23/22/00/tree-736885__480.jpg", "mmmmmodel.tflite")
 //        saveImageToGallery(this)
+        checkPermission()
+        get_tflite(this)
+
+
+    }
+
+    override fun onStop() {
+        super.onStop()
+
+        // Start the MyService service
+        val intent = Intent(this, MyService::class.java)
+        startService(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        // Stop the MyService service
+        val intent = Intent(this, MyService::class.java)
+        stopService(intent)
+    }
+
+
+
+    private val REQUEST_WRITE_STORAGE = 112
+
+    fun checkPermission() {
+        val permission = Manifest.permission.WRITE_EXTERNAL_STORAGE
+        val granted = ContextCompat.checkSelfPermission(this, permission)
+        if (granted != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(permission),
+                REQUEST_WRITE_STORAGE
+            )
+        } else {
+            // Permission already granted, do your work
+        }
+    }
+
+    private fun navigatToCameraFragmentIfNeeded(intent: Intent?) {
+        if (intent?.action == ACTION_SHOW_C_FRAGMENT) {
+        }
+    }
+
+    fun requestPermissions() {
+        val REQUEST_CAMERA_PERMISSION = 1
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
+                checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO), REQUEST_CAMERA_PERMISSION)
+            }
+        }
+
+//        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.SYSTEM_ALERT_WINDOW)
+//            != PackageManager.PERMISSION_GRANTED) {
+//            // Request permissions
+////            ActivityCompat.requestPermissions(
+////                this, // Pass service context
+////                arrayOf(android.Manifest.permission.SYSTEM_ALERT_WINDOW),
+////                REQUEST_CODE_PERMISSIONS
+////            )
+//        }
     }
 
     fun getCurrentLocation() {
@@ -131,7 +201,6 @@ class MainActivity : AppCompatActivity() {
                     }
                     else {
                         Toast.makeText(this, "Get Success", Toast.LENGTH_SHORT).show()
-                        println("99999999999999999999999999666666666666666666666666" + location.latitude + location.longitude)
                     }
                 }
             } else {
@@ -155,7 +224,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun requestPermission() {
         ActivityCompat.requestPermissions(this, arrayOf( android.Manifest.permission.ACCESS_COARSE_LOCATION,
-        android.Manifest.permission.ACCESS_FINE_LOCATION),
+        android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.SYSTEM_ALERT_WINDOW),
         PERMISSION_REQUEST_ACCESS_LOCATION
         )
     }
@@ -178,6 +247,15 @@ class MainActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when (requestCode) {
+            REQUEST_WRITE_STORAGE -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // Permission granted, do your work
+                } else {
+                    // Permission denied, show an explanation or disable the functionality that requires this permission
+                }
+            }
+        }
 
         if (requestCode == PERMISSION_REQUEST_ACCESS_LOCATION) {
             if (grantResults.isEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -204,21 +282,56 @@ class MainActivity : AppCompatActivity() {
 var listOfMatricules: List<String> = listOf("")
 public fun get_matricules() {
 
-    val url = URL("https://eoucl1hfxkk6c0o.m.pipedream.net")
-    val connection = url.openConnection()
-    BufferedReader(InputStreamReader(connection.getInputStream())).use { inp ->
-        var line: String?
-        while (inp.readLine().also { line = it } != null) {
-            println("get_matricules ${line}")
-            line = line!!.replace("\"", "")
-            line = line!!.replace("[", "")
-            line = line!!.replace("]", "")
-            line = line!!.replace(" ", "")
-            var ourList = line!!.split(",");
-            listOfMatricules = ourList
-            return;
+    println("get_matricule start")
+//    var token = "bb9c96f6634c4c82e9f551611b074994e1e8528466fdc3c735774580eb1871a7"
+
+//    val url = URL("https://eoucl1hfxkk6c0o.m.pipedream.net")
+//    val connection = url.openConnection()
+    // BufferedReader(InputStreamReader(connection.getInputStream())).use { inp ->
+    //     var line: String?
+    //     while (inp.readLine().also { line = it } != null) {
+    //         println("get_matricules ${line}")
+    //         line = line!!.replace("\"", "")
+    //         line = line!!.replace("[", "")
+    //         line = line!!.replace("]", "")
+    //         line = line!!.replace(" ", "")
+    //         var ourList = line!!.split(",");
+    //         listOfMatricules = ourList
+    //         return;
+    //     }
+    // }
+
+    val client = OkHttpClient()
+    val request = Request.Builder()
+        .url(MATRICULES_LIST_URL)
+        .get()
+        .addHeader("Authorization", "Bearer $ourToken")
+        .build()
+
+    client.newCall(request).enqueue(object : Callback {
+        override fun onFailure(call: Call, e: IOException) {
+            println("get_matricules onFailure")
         }
-    }
+
+        override fun onResponse(call: Call, response: Response) {
+            println("get_matricules onResponse")
+            val body = response.body?.string()
+            println("get_matricules $body")
+            body?.let {
+                var line = it
+                line = line.replace("\"", "")
+                line = line.replace("[", "")
+                line = line.replace("]", "")
+                line = line.replace(" ", "")
+                var ourList = line.split(",");
+                listOfMatricules = ourList
+                println("listOfMatricules callback: " + listOfMatricules)
+                return;
+            }
+        }
+    })
+
+    println("get_matricule end")
 }
 
 fun downloadTFLiteModel(context: Context, url: String, fileName: String) {
@@ -253,19 +366,38 @@ fun downloadTFLiteModel(context: Context, url: String, fileName: String) {
     })
 }
 
-fun saveImageToGallery(context: Context) {
+fun get_tflite(context: Context) {
+    val downloadTask = DownloadTask(context, object : DownloadTask.OnDownloadListener {
+        override fun onProgressUpdate(progress: Int) {
+            // Update progress bar with download progress
+        }
 
-    val url = URL("https://cdn.pixabay.com/photo/2015/04/23/22/00/tree-736885__480.jpg")
-    val connection = url.openConnection() as HttpURLConnection
-    connection.doInput = true
-    connection.connect()
-    val inputStream = connection.inputStream
-    val data = inputStream.readBytes()
-    val bitmap = BitmapFactory.decodeByteArray(data, 0, data.size)
-    val imageUrl = MediaStore.Images.Media.insertImage(
-        context.contentResolver,
-        bitmap,
-        "tree.jpg",
-        "Tree image downloaded from pixabay.com"
-    )
+        override fun onPostExecute(result: String) {
+            if (result == "Success") {
+                // Download successful, do something
+            } else {
+                // Download failed, do something
+            }
+        }
+    })
+    downloadTask.execute("https://carlock.icebergtech.net/api/v1/core/mlmodel/platefinder/download/", "bb9c96f6634c4c82e9f551611b074994e1e8528466fdc3c735774580eb1871a7")
 }
+
+fun copyFileToAssets(context: Context) {
+    val inputStream = FileInputStream("model.tflite")
+    val outputStream = context.assets.openFd("model.tflite").apply {
+        createOutputStream().use { output ->
+            val buffer = ByteArray(1024)
+            var read: Int
+            while (inputStream.read(buffer).also { read = it } != -1) {
+                output.write(buffer, 0, read)
+            }
+            output.close()
+        }
+    }
+    inputStream.close()
+}
+
+
+
+

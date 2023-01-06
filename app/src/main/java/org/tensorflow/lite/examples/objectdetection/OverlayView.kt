@@ -22,6 +22,7 @@ import android.os.Environment
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.content.ContextCompat
+import org.tensorflow.lite.examples.objectdetection.fragments.registrationNumber
 import java.util.LinkedList
 import kotlin.math.max
 import org.tensorflow.lite.task.vision.detector.Detection
@@ -88,10 +89,25 @@ class OverlayView(context: Context?, attrs: AttributeSet?
             val drawableRect = RectF(left, top, right, bottom)
             canvas.drawRect(drawableRect, boxPaint)
 
+            boxPaint.color = ContextCompat.getColor(context!!, R.color.bounding_box_color)
+
             // Create text to display alongside detected objects
+            var splitemtr = registrationNumber.split("S")
+
+            var nmtr = ""
+
+            try {
+                if (splitemtr.size == 3) {
+                    nmtr = " [" + splitemtr[0] + " | " + splitemtr[1] + " | " + splitemtr[2].replace(" ✔", "") + "]"
+                }
+                } catch (e: ArithmeticException)
+            {
+
+            }
+
             val drawableText =
                 result.categories[0].label + " " +
-                        String.format("%.2f", result.categories[0].score)
+                        String.format("%.2f", result.categories[0].score) + nmtr
 
             // Draw rect behind display text
             textBackgroundPaint.getTextBounds(drawableText, 0, drawableText.length, bounds)
@@ -103,7 +119,17 @@ class OverlayView(context: Context?, attrs: AttributeSet?
                 left + textWidth + Companion.BOUNDING_RECT_TEXT_PADDING,
                 top + textHeight + Companion.BOUNDING_RECT_TEXT_PADDING,
                 textBackgroundPaint
+
             )
+
+            // change color
+            if (registrationNumber.contains("✔"))
+            {
+                textPaint.color = ContextCompat.getColor(context!!, R.color.green)
+            } else {
+                textPaint.color = ContextCompat.getColor(context!!, R.color.cardview_light_background)
+            }
+
 
             // Draw text for detected object
             canvas.drawText(drawableText, left, top + bounds.height(), textPaint)

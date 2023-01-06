@@ -15,7 +15,7 @@
     ~ limitations under the License.
 -->
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="app_name">TFLite pf ef0 gpu no qtz</string>
+    <string name="app_name">carlock</string>
 
     <string name="alt_bottom_sheet_chevron">Bottom sheet expandable indicator</string>
 

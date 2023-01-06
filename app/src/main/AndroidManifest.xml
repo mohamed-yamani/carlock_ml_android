@@ -28,9 +28,11 @@
 
     <!-- Declare permissions -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- Always include this permission -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- Include only if your app benefits from precise location access. -->
@@ -69,8 +71,10 @@
             <meta-data android:name="android.notch_support" android:value="true"/>
 
         </activity>
+<!--        <service android:name=".services.CameraService"-->
+<!--            android:foregroundServiceType="camera" />-->
         <service
-            android:name=".MyForegroundService"
+            android:name=".services.MyService"
             android:enabled="true"
             android:exported="true">
             <intent-filter>

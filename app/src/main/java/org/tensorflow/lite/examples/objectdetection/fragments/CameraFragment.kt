@@ -16,10 +16,14 @@
 package org.tensorflow.lite.examples.objectdetection.fragments
 
 import android.annotation.SuppressLint
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.os.IBinder
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -43,13 +47,14 @@ import java.util.concurrent.Executors
 import org.tensorflow.lite.examples.objectdetection.ObjectDetectorHelper
 import org.tensorflow.lite.examples.objectdetection.R
 import org.tensorflow.lite.examples.objectdetection.databinding.FragmentCameraBinding
+import org.tensorflow.lite.examples.objectdetection.get_matricules
 import org.tensorflow.lite.examples.objectdetection.ourToken
+import org.tensorflow.lite.examples.objectdetection.services.MyService
 
 import org.tensorflow.lite.task.vision.detector.Detection
-import kotlin.jvm.Throws
 
 
-var registrationNumber:String = "value";
+var registrationNumber:String = "";
 
 class CameraFragment : Fragment() , ObjectDetectorHelper.DetectorListener {
 
@@ -61,7 +66,7 @@ class CameraFragment : Fragment() , ObjectDetectorHelper.DetectorListener {
     private val fragmentCameraBinding
         get() = _fragmentCameraBinding!!
 
-    
+
 
     private lateinit var objectDetectorHelper: ObjectDetectorHelper
     private lateinit var bitmapBuffer: Bitmap
@@ -72,6 +77,36 @@ class CameraFragment : Fragment() , ObjectDetectorHelper.DetectorListener {
 
     /** Blocking camera operations are performed using this executor */
     private lateinit var cameraExecutor: ExecutorService
+
+//    private fun sendCommandToService(action: String) = Intent(requireContext(), CameraService::class.java).also {
+
+//        it.action = action
+//        requireContext().startService(it)
+//    }
+
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+//            val binder = service as ToastService.LocalBinder
+//            val service = binder.service()
+//            service.doSomething()
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val intent = Intent(context, MyService::class.java)
+        context?.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+
+
+    }
+
+    override fun onStop() {
+        super.onStop()
+        context?.unbindService(serviceConnection)
+    }
 
     override fun onResume() {
         super.onResume()
@@ -105,6 +140,8 @@ class CameraFragment : Fragment() , ObjectDetectorHelper.DetectorListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+//        sendCommandToService(ACTION_START_OR_RESUME_SERVICE)
+
         objectDetectorHelper = ObjectDetectorHelper(
             context = requireContext(),
             objectDetectorListener = this)
@@ -121,6 +158,7 @@ class CameraFragment : Fragment() , ObjectDetectorHelper.DetectorListener {
         // Attach listeners to UI control widgets
         initBottomSheetControls()
 
+
         // get token from shared preferences
         try{
             val sharedPreference =  activity?.getSharedPreferences("myPref", Context.MODE_PRIVATE)
@@ -135,7 +173,7 @@ class CameraFragment : Fragment() , ObjectDetectorHelper.DetectorListener {
                 fragmentCameraBinding.bottomSheetLayout.button2.visibility = View.GONE
             }
         }catch(e: Error){
-            fragmentCameraBinding.bottomSheetLayout.tokenLayout.visibility = View.VISIBLE 
+            fragmentCameraBinding.bottomSheetLayout.tokenLayout.visibility = View.VISIBLE
             fragmentCameraBinding.bottomSheetLayout.button2.visibility = View.GONE
         }
     }
@@ -180,6 +218,7 @@ class CameraFragment : Fragment() , ObjectDetectorHelper.DetectorListener {
             // hide token layout and show bottom sheet layout
             fragmentCameraBinding.bottomSheetLayout.tokenLayout.visibility = View.GONE
             fragmentCameraBinding.bottomSheetLayout.button2.visibility = View.VISIBLE
+            get_matricules()
         }
         // When clicked, delete button
         fragmentCameraBinding.bottomSheetLayout.button2.setOnClickListener {
@@ -353,7 +392,7 @@ class CameraFragment : Fragment() , ObjectDetectorHelper.DetectorListener {
                               Bitmap.Config.ARGB_8888
                             )
                         }
-                        // show the image on screen 
+                        // show the image on screen
                         println("image is : ${image.width} x ${image.height} ${image.imageInfo.rotationDegrees}")
                         detectObjects(image)
                     }
@@ -393,7 +432,7 @@ class CameraFragment : Fragment() , ObjectDetectorHelper.DetectorListener {
     override fun onResults(
       results: MutableList<Detection>?,
       inferenceTime: Long,
-      
+
       imageHeight: Int,
       imageWidth: Int,
       finalBitmap: Bitmap

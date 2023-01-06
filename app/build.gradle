@@ -127,4 +127,7 @@ dependencies {
 //    to download and save a TFLite model
     implementation 'com.squareup.okhttp3:okhttp:4.9.0'
 
+    // timber
+    implementation 'com.jakewharton.timber:timber:4.7.1'
+
 }
